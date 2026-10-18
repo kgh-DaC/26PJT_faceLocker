@@ -1,0 +1,31 @@
+# 개인정보: 얼굴 이미지/임베딩/로그/리포트는 저장소에 올리지 않는다
+data/
+logs/
+reports/
+models/*.onnx
+models/*.bak
+configs/local.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# SD card staging / image cache (contains password hash, Wi-Fi PSK, large images)
+deploy/sdcard/out/

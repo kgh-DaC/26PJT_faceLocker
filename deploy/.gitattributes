@@ -1,0 +1,5 @@
+# Pi에서 실행되는 파일은 Windows에서 체크아웃해도 LF 유지 (CRLF면 bash/systemd가 실패)
+*.sh      text eol=lf
+*.service text eol=lf
+*.tpl     text eol=lf
+*.ps1     text eol=crlf

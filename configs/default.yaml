@@ -1,0 +1,229 @@
+# facedoor 기본 설정 (schema_version 1)
+# - 모든 키는 docs/INTERFACES.md §2 와 1:1 대응한다. 키를 추가/변경하면 INTERFACES.md도 갱신할 것.
+# - 경로는 프로젝트 루트(이 파일의 상위 폴더) 기준 상대 경로. FACEDOOR_HOME 환경변수로 루트 변경 가능.
+# - 장치별 덮어쓰기는 configs/local.yaml (gitignore 대상) 또는 CLI `--set key.sub=value`.
+#   Pi 실기 전환은 configs/local.yaml 에 아래 한 줄이면 된다:
+#     hardware: {mode: pi}
+# - 임계값은 여기의 기본값(보수적)보다 models/calibration.json 이 우선한다(단, 신뢰도 부족 시 둘 중 큰 값).
+
+schema_version: 1
+
+app:
+  gallery_dir: data/gallery
+  probe_dir: data/probe
+  models_dir: models
+  logs_dir: logs
+  reports_dir: reports
+  calibration_file: models/calibration.json
+  log_level: INFO              # DEBUG|INFO|WARNING|ERROR
+  condition_tag: live          # events.csv condition_tag 기본값 (run.py --tag 로 덮어씀)
+  allow_empty_gallery: false   # false면 갤러리가 비었을 때 시작 거부(GalleryError)
+
+runtime:
+  max_fps: 15                  # 메인 루프 상한 (0 = 제한 없음)
+  process_every_n: 1           # N 프레임마다 1회 검출/인식 (Pi5 성능 조절용)
+  stop_on_camera_error: true   # 카메라 재시도 실패 시 종료(문 닫힘 보장 후). systemd가 재시작
+
+camera:
+  source: "0"                  # "0"=장치 인덱스, "/dev/video0", 동영상 파일, 이미지 폴더
+  backend: auto                # auto|dshow|msmf|v4l2|any  (auto: Windows=dshow, Linux=v4l2)
+  width: 640
+  height: 480
+  fps: 30
+  fourcc: MJPG                 # MJPG|YUYV|"" (빈 문자열 = 드라이버 기본)
+  buffer_size: 1               # 지연 줄이기 (지원하는 백엔드에서만)
+  read_retries: 5              # 연속 읽기 실패 허용 횟수, 초과 시 CameraError
+  retry_delay_sec: 0.2
+  file_loop: false             # FileCamera 반복 재생
+  file_fps: 0                  # FileCamera 재생 속도 (0 = 가능한 빨리)
+
+detector:
+  backend: yunet
+  model_file: face_detection_yunet_2023mar.onnx   # models_dir 기준
+  score_threshold: 0.85        # YuNet 검출 신뢰도 하한
+  nms_threshold: 0.3
+  top_k: 50
+  input_scale: 1.0             # 검출 전 축소 비율 (0.5 = 절반 해상도로 검출, 좌표는 원본으로 환산)
+
+quality:
+  min_face_px: 80              # 얼굴 bbox 짧은 변 최소 픽셀
+  min_det_score: 0.90          # 인식에 쓰기 위한 검출 점수 하한 (detector.score_threshold 이상)
+  min_blur_var: 60.0           # 얼굴 영역 라플라시안 분산 하한
+  min_brightness: 50           # 얼굴 영역 평균 밝기(0~255) 하한
+  max_brightness: 210          # 상한 (역광/포화)
+  max_abs_yaw_ratio: 0.45      # |코x - 눈중점x| / 눈간거리
+  border_margin_px: 4          # bbox가 프레임 가장자리에 붙으면 HOLD
+
+embedder:
+  backend: sface               # sface (OpenCV FaceRecognizerSF, 기본) | arcface (onnxruntime 직접 로드, 선택)
+  sface_model_file: face_recognition_sface_2021dec.onnx
+  arcface_model_file: arcface_w600k_r50.onnx       # 사용자가 직접 배치 (InsightFace 모델은 비상업 라이선스)
+  onnx_providers: [CPUExecutionProvider]
+  clahe: false                 # 얼굴 crop 조도 정규화. A/B 평가 결과로만 켤 것
+  clahe_clip: 2.0
+  clahe_grid: 8
+
+recognition:
+  score: cosine                # 고정. 모든 점수는 L2 정규화 임베딩의 코사인 유사도 [-1, 1]
+  aggregation: max             # max|topk_mean  (사람별 갤러리 점수 집계)
+  topk: 3
+  margin: 0.05                 # 1위 - 2위(다른 사람) 최소 격차
+  # calibration.json 이 없거나, 다른 임베더로 만들어졌거나, 손상되었을 때 쓰는 보수적 기본값
+  default_thresholds:
+    sface:   {global: 0.50, occluded: 0.55}
+    arcface: {global: 0.45, occluded: 0.50}
+  # 어떤 보정 결과도 이 값 아래로는 내려가지 못한다 (잘못된 보정으로 문이 쉽게 열리는 것 방지)
+  threshold_floor:
+    sface: 0.40
+    arcface: 0.30
+  occluded_tags: [mask, scarf]  # 최고 점수 갤러리 샘플의 태그가 여기 속하면 'occluded' 임계값 그룹 사용
+  occluded_policy: threshold   # threshold(별도 임계값) | deny(가림 상태 매칭은 항상 UNKNOWN 처리)
+  unreliable_calibration: max_with_default   # max_with_default | ignore  (표본 부족 보정의 처리)
+  multi_face_policy: largest   # largest(가장 큰 얼굴로 판정) | hold(2명 이상이면 HOLD)
+
+liveness:
+  backend: none                # none = no-op (위조 방어 없음, docs/ARCHITECTURE.md §8 참고)
+  required: false              # true면 liveness 결과가 None/False일 때 HOLD
+
+decision:
+  window_frames: 5             # M: 최근 M개 처리 프레임(HOLD/NO_FACE 포함)
+  min_votes: 3                 # N: 같은 사람 MATCH 가 N회 이상이면 OPEN
+  window_timeout_sec: 2.0      # 창 안의 항목 중 이보다 오래된 것은 버림 (FPS 변동 대응)
+  reset_on_unknown: true       # UNKNOWN 프레임이 오면 창 초기화
+  reset_on_other_person: true  # 다른 사람 MATCH 가 오면 창 초기화
+  rearm_sec: 5.0               # OPEN 직후 재판정 금지 시간 (>= hardware.open_sec + hardware.cooldown_sec 권장)
+  deny_after_unknown: 3        # 연속 UNKNOWN 이 이 수에 도달하면 DENIED 이벤트 1회
+  deny_cooldown_sec: 2.0       # DENIED 이벤트 재발생 최소 간격
+
+hardware:
+  mode: mock                   # mock | pi | auto  (auto: Pi가 아니면 경고 후 mock. pi를 PC에서 지정하면 오류 종료)
+  mock_backend: state          # state(순수 파이썬) | gpiozero(gpiozero MockFactory로 Pi 코드 경로 실행)
+  pin_factory: lgpio           # Pi5는 lgpio 필수 (RPi.GPIO 미지원)
+  gpio_chip: auto              # auto | 0 | 4  (커널 버전에 따라 RP1 칩 번호가 다름)
+  solenoid_pin: null           # single 모드 전용 BCM(예: 17). per_locker 에서는 null 필수 — 사물함 출력은 아래 locker_outputs (INTERFACES §13.2)
+  led_green_pin: 27            # BCM (물리 13) 개방 신호 출력 중
+  led_red_pin: 22              # BCM (물리 15) 거부
+  led_amber_pin: 23            # BCM (물리 16) 판정 보류/처리 중
+  exit_button_pin: null        # BCM, 실내측 수동 개방 버튼 (null = 미사용)
+  solenoid_active_high: true   # 릴레이 모듈이 active-low면 false (사물함별 active_high 로 개별 지정 가능)
+  led_active_high: true
+  open_sec: 3.0                # close_mode=timer 전용: 기본 개방 신호 유지 시간 (limit 모드에서는 무시)
+  max_open_sec: 5.0            # close_mode=timer 전용 워치독 상한 (코드 절대상한 10.0초). limit 모드에서는 max_unlock_sec 사용
+  # --- 리밋센서 도어 제어 (v1.5, INTERFACES §15) ---
+  # 동작: 인식으로 솔밸브 해제 -> unlock_timeout_sec 안에 문이 안 열리면 재잠금 -> 문이 열려 있는 동안 해제 유지
+  #       -> 리밋이 close_confirm_sec 연속 눌림이면 잠금. max_unlock_sec 초과 시 센서와 무관하게 잠금(fail-safe).
+  #       센서 읽기 실패/미연결은 fail-closed (해제 거부, 해제 중이면 sensor_fault_sec 후 즉시 잠금).
+  close_mode: limit            # limit = 리밋센서 상태기계 | timer = 기존(open_sec 고정). hold 는 폐기(ConfigError). 코드 기본값은 timer(구 설정 호환)
+  limit_switch_pin: null       # single 모드 리밋 입력 BCM(예: 5, 물리 29). per_locker 에서는 null, 아래 locker_outputs[].limit_pin 사용
+  limit_pull_up: true          # 내부 풀업 (pull_up=false 면 외부 저항 필요)
+  limit_active_low: true       # true: 눌림(문 닫힘) = 핀 LOW (NO 접점 + GND 배선).
+                               # 권장 fail-safe 배선: 리밋 NC 접점 + limit_active_low: false -> 선이 빠지면 '눌림=닫힘'으로 읽혀 잠금 쪽으로 오판 (INTERFACES §15.1)
+  limit_poll_sec: 0.02         # 하드웨어 감시 스레드 샘플링 주기 (0.005~0.1). 메인 루프와 독립
+  open_confirm_sec: 0.1        # 리밋 해제가 이 시간 연속이면 '문 열림' 확정 (0~1.0)
+  close_confirm_sec: 2.0       # 리밋 눌림이 이 시간 연속이면 '문 닫힘' 확정 -> 솔밸브 OFF (0.5~10)
+  unlock_timeout_sec: 10.0     # 해제 후 이 시간 안에 문이 안 열리면 자동 재잠금 (1~60)
+  max_unlock_sec: 30.0         # 해제 시점부터 솔밸브 ON 절대상한. 초과 시 잠금(연장 불가). unlock_timeout_sec + close_confirm_sec + 1 <= v <= 120(코드 상한). 솔밸브 연속 통전 정격 확인!
+  sensor_fault_sec: 1.0        # 리밋 읽기 실패가 이 시간 연속이면 센서 오류 -> 즉시 잠금 (0.2~5)
+  cooldown_sec: 2.0            # 재잠금 뒤 다음 해제까지 최소 간격
+  deny_blink_count: 3
+  deny_blink_sec: 0.15
+  hardware_log: logs/hardware.log
+  # --- 사물함별 출력 (v1.3, INTERFACES §13): lockers.mode: per_locker 와 짝. 사물함 4개 "1"~"4" 확정, 핀·극성은 실배선 확인 후 ---
+  max_concurrent_open: 1       # 동시에 해제될 수 있는 사물함 수 (1..min(채널 수, 4))
+  locker_outputs:              # 반드시 리스트. locker_id 는 문자열("1")로 쓸 것. single 모드로 되돌리려면 [] 와 solenoid_pin: 17
+    - {locker_id: "1", pin: 24, limit_pin: 5}    # 솔밸브 BCM24(물리 18) / 리밋 입력 BCM5(물리 29)
+    - {locker_id: "2", pin: 25, limit_pin: 6}    # 물리 22 / 31
+    - {locker_id: "3", pin: 16, limit_pin: 12}   # 물리 36 / 32
+    - {locker_id: "4", pin: 26, limit_pin: 13}   # 물리 37 / 33
+  # 주의: 극성을 잘못 쓰면 시작 즉시 모든 사물함이 열린다. 첫 시험은 솔밸브 전원을 분리하고 할 것 (INTERFACES §13.9 시나리오 29)
+
+display:
+  enabled: true                # run.py --no-display 로 끔
+  window_name: FaceDoor
+  show_fps: true
+  show_scores: true
+  scale: 1.0
+  # --- (v1.5 구현됨) 한글 인식 화면·사물함 패널 — INTERFACES §16·§17 ---
+  # (v1.5) 인식 창 레이아웃: 왼쪽 웹캠 영상, 오른쪽 위에서부터 사물함 패널 4개(각 열림/닫힘 표시), 하단 상태줄 — INTERFACES §17.1
+  # (v1.5) mock 시뮬레이션: 패널 클릭 또는 키 1~4 = 문 열기/닫기(가상 리밋 토글), 키 5~8 = 센서 오류 주입. 실기(pi)에서는 무시 — §15.4
+  backend: auto             # auto(tk 가능하면 TkDisplay, 아니면 경고 후 ASCII opencv) | tk | opencv
+  # web_host: 0.0.0.0         # (backend: web) bind address. 127.0.0.1 = this device only (SSH tunnel). NO authentication: trusted LAN only
+  # web_port: 8080            # (backend: web) browser: http://<device-ip>:8080/ ; snapshot: /snapshot.jpg
+  locker_panel: true        # 사물함 1~4 패널: 문 열림/닫힘(리밋) + 잠금 해제 여부·카운트다운
+  locker_owner: when_open   # none | when_open(열린 동안 연 사람 이름) | always(개인정보 노출, 비권장)
+  font_families: ["Malgun Gothic", "NanumGothic", "Noto Sans CJK KR"]   # 관리 화면과 공용 (Pi: sudo apt install fonts-nanum)
+  font_size: 14
+
+logging:
+  events_csv: logs/events.csv
+  app_log: logs/facedoor.log
+  log_every_frame: true        # 얼굴이 있는 모든 처리 프레임 기록 (false = 판정 이벤트만)
+  log_no_face: false           # NO_FACE 프레임도 기록할지
+  events_max_mb: 50            # 초과 시 events_<YYYYmmdd_HHMMSS>.csv 로 회전
+  save_snapshots: false        # 개인정보: 기본 끔. 켜면 OPEN/DENY 시 얼굴 crop 저장
+  snapshot_dir: logs/snapshots
+  door_state_file: logs/door_state.json   # (v1.5) 사물함 상태 공유 파일 schema 2 (관리 화면이 읽음) — INTERFACES §16
+
+enroll:
+  poses: [front, left, right, up, down]
+  samples_per_pose: 2          # 태그 1회 등록 = poses x samples_per_pose 장 (기본 10장)
+  tags: [normal, glasses, noglasses, mask, scarf, lowlight, backlight, hat, other]   # hat(모자)/other(기타)는 global 임계값 그룹 (INTERFACES §14.5)
+  capture_interval_sec: 0.4
+  crop_margin: 0.6             # 저장용 원본 crop: bbox 각 변을 크기의 60%만큼 확장 (재검출/재임베딩 가능하도록)
+  max_abs_yaw_ratio: 0.8       # 등록 시 좌/우 포즈를 허용하기 위한 완화 값 (quality.max_abs_yaw_ratio 대체)
+  dedup_score: 0.995           # 직전 샘플과 이 이상 유사하면 중복으로 버림
+  outlier_min_self_score: 0.30 # 사람 내 다른 샘플과의 평균 유사도가 이보다 낮으면 이상치 후보
+  person_id_pattern: "^[A-Za-z0-9_-]{1,32}$"   # 폴더명/화면 표시 호환을 위해 ASCII만
+
+evaluation:
+  target_far: 0.001
+  calibration_fraction: 0.5
+  split_by: person             # person | image  (보정/평가 분할 단위)
+  seed: 42
+  bootstrap_iters: 1000
+  ci: 0.95
+  conditions: [normal, lowlight, backlight, mask, glasses, noglasses, scarf, angle]
+  occluded_conditions: [mask, scarf, syn_mask, syn_scarf]   # occluded 임계값 보정에 쓰는 조건
+  synthetic_prefix: syn_
+  impostor_dir_name: _impostor
+  count_hold_as_reject: true   # 시스템 FRR에 HOLD 포함 (매처 FRR은 별도 보고)
+  synthetic_conditions: [syn_lowlight, syn_bright, syn_backlight, syn_noise, syn_blur, syn_mask, syn_glasses, syn_scarf]
+
+admin:                         # 관리자 PIN — 예약됨, 미구현 (INTERFACES §12.1). 값은 검증만 되고 사용하는 코드 없음
+  pin_file: data/admin_pin.json   # (예약) PBKDF2-SHA256 해시+salt 저장 예정
+  min_pin_len: 4               # (예약) 검증: >= 4
+  max_attempts: 3              # (예약)
+  pbkdf2_iterations: 200000    # (예약)
+  # lockout_sec: 300           # (v1.3 계약, 미구현) max_attempts 연속 실패 후 잠금 시간. 관리 화면 PIN 용 (INTERFACES §12.1)
+
+lockers:                       # 사물함 라우팅 (INTERFACES §12, per_locker 는 §13)
+  mode: per_locker             # per_locker = 인식된 사람의 배정 사물함 하나만 해제 (hardware.locker_outputs 필요) | single = 단일 솔밸브 출력 (solenoid_pin 필요)
+  require_locker_id: false     # true면 locker_id 없는 사람은 인식돼도 개방 안 함. per_locker 에서는 값과 무관하게 항상 true 취급
+  locker_id_pattern: "^[A-Za-z0-9_-]{1,16}$"
+  allow_shared: false          # 한 사물함을 여러 사람에게 배정 허용 여부. 기본 금지
+
+# --- (v1.3 계약, 미구현) 한글 관리 화면 scripts/admin_gui.py — INTERFACES §14.9. 구현 전 주석 해제 금지 ---
+# gui:
+#   require_pin: true
+#   preview_width: 480
+#   preview_fps: 15
+#   pose_countdown_sec: 2.0
+#   min_register_samples: 5          # 신규 등록 시 이보다 적게 저장되면 롤백
+#   weak_min_samples: 10             # 이하 "보강 필요" 판정 기준들
+#   weak_self_score: 0.45
+#   weak_required_tags: [normal]
+#   weak_frr: 0.2
+#   locker_choices: ["1", "2", "3", "4"]   # single 모드에서 배정 선택지 (per_locker 는 hardware.locker_outputs 사용)
+#   (v1.4) 폰트는 display.font_families/font_size 를 공용으로 사용
+
+models:
+  # sha256: null 이면 download_models.py 가 최초 다운로드 시 계산해 models/models.lock.json 에 기록하고,
+  # 이후 실행부터 그 값으로 검증한다(TOFU). 값을 확인했다면 여기에 고정해 둘 것.
+  yunet:
+    file: face_detection_yunet_2023mar.onnx
+    url: https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+    sha256: null
+  sface:
+    file: face_recognition_sface_2021dec.onnx
+    url: https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+    sha256: null

@@ -1,0 +1,56 @@
+# facedoor systemd unit (template). deploy/install_rpi.sh replaces @ROOT@ and @USER@ and installs it to
+# /etc/systemd/system/facedoor.service. STATUS: UNVERIFIED ON REAL HARDWARE.
+#
+# Safety:
+#  - The app turns outputs OFF itself on SIGTERM/SIGINT/atexit (facedoor.hardware.factory).
+#  - ExecStartPre drives every configured output (solenoid if set, EVERY hardware.locker_outputs
+#    channel, LEDs) to its OFF level before the app starts, shortening the window in which lines are
+#    left in their boot default. It reads only the hardware section. If any output cannot be driven
+#    OFF it exits 5 and the unit does not start (fail-closed; Restart=on-failure retries).
+#  - ExecStopPost runs after the main process is gone (any exit: stop, crash, kill) and drives every
+#    configured output to its OFF level with raw lgpio (hw_selftest.py --force-off).
+#  - per_locker: with wrong polarity (active_high) all lockers open as soon as outputs are claimed.
+#    Test with the solenoid supply disconnected first (deploy/WIRING.md section 7.4).
+#  - close_mode=limit: a hardware thread drives the limit-switch state machine independently of the main loop;
+#    an independent timer per channel switches the solenoid OFF max_unlock_sec after the unlock even if the
+#    main loop and that thread hang (close_mode=timer: after max_open_sec). Unreadable limit switches on every
+#    door make the app refuse to start (exit 5, Restart=on-failure retries).
+#  - On SIGTERM/SIGINT the app exits with 130 (ExitCode.INTERRUPTED); 143 is the raw SIGTERM status.
+#    Both are listed in SuccessExitStatus so 'systemctl stop' does not leave the unit 'failed'.
+#    ExecStopPost still runs on every exit, success or failure.
+#  - @ROOT@ must be an ASCII path (install_rpi.sh enforces this; see docs/PORTING.md section 6):
+#    with ProtectHome=read-only a non-ASCII root makes model loading try to write ~/.cache and fail.
+[Unit]
+Description=facedoor face recognition door controller
+Wants=network-online.target
+After=network-online.target systemd-udev-settle.service
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=@USER@
+SupplementaryGroups=gpio video
+WorkingDirectory=@ROOT@
+Environment=FACEDOOR_HOME=@ROOT@
+Environment=GPIOZERO_PIN_FACTORY=lgpio
+Environment=PYTHONUNBUFFERED=1
+# Headless by default (no monitor). Remove --no-display only if a desktop session is available.
+ExecStartPre=@ROOT@/.venv/bin/python @ROOT@/scripts/hw_selftest.py --force-off
+ExecStart=@ROOT@/.venv/bin/python @ROOT@/scripts/run.py --no-display
+ExecStopPost=@ROOT@/.venv/bin/python @ROOT@/scripts/hw_selftest.py --force-off
+SuccessExitStatus=130 143
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=10
+# Hardening (GPIO and video devices must stay visible: no PrivateDevices)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=@ROOT@/logs @ROOT@/data @ROOT@/models
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

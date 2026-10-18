@@ -1,0 +1,10 @@
+# PC (Windows) 개발/시뮬레이션/평가용
+# python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt && pip install -e .
+numpy>=1.26,<3
+opencv-python>=4.9,<5
+PyYAML>=6.0
+matplotlib>=3.8
+gpiozero>=2.0.1          # mock_backend: gpiozero (MockFactory) 및 Pi 코드 경로 테스트용. 실제 핀 접근 없음
+pytest>=8.0
+# 선택: ArcFace 백엔드 (embedder.backend: arcface)
+# onnxruntime>=1.17

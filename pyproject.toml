@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "facedoor"
+version = "0.1.0"
+description = "Face recognition door (solenoid valve) controller for Raspberry Pi 5 with PC mock mode and robustness evaluation"
+readme = "docs/ARCHITECTURE.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "numpy>=1.26,<3",
+    "opencv-python>=4.9,<5",   # YuNet 2023mar 는 OpenCV >= 4.8 필요. Ubuntu apt python3-opencv(4.6) 사용 금지
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+eval = ["matplotlib>=3.8"]
+arcface = ["onnxruntime>=1.17"]
+pi = ["gpiozero>=2.0.1"]        # lgpio 는 apt python3-lgpio 사용 (deploy/install_rpi.sh)
+mockgpio = ["gpiozero>=2.0.1"]  # PC에서 MockFactory 로 Pi 코드 경로 테스트
+dev = ["pytest>=8.0", "gpiozero>=2.0.1", "matplotlib>=3.8"]
+
+[project.scripts]
+facedoor = "facedoor.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+markers = [
+    "camera: requires a real camera (skipped by default)",
+    "pi: requires Raspberry Pi GPIO (skipped by default)",
+    "models: requires downloaded ONNX models in models/",
+]

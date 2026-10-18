@@ -1,0 +1,12 @@
+# Raspberry Pi 5 / Ubuntu 24.04 (aarch64, Python 3.12) 런타임용
+# 사전 apt: python3-venv python3-lgpio v4l-utils libgl1 libglib2.0-0
+#   - lgpio 는 apt 패키지를 쓰므로 venv 를 --system-site-packages 로 만든다 (deploy/install_rpi.sh).
+#   - apt python3-opencv(4.6)는 YuNet 2023mar 를 못 읽으므로 설치하지 말고 아래 pip 휠을 쓴다.
+numpy>=1.26,<3
+opencv-python>=4.9,<5    # 모니터 없이 서비스만 돌릴 경우 opencv-python-headless 로 바꿔도 됨
+PyYAML>=6.0
+gpiozero>=2.0.1
+# 선택: Pi 에서 평가까지 돌릴 때
+# matplotlib>=3.8
+# 선택: ArcFace 백엔드
+# onnxruntime>=1.17
