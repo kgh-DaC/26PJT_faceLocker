@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="590" viewBox="0 0 1200 590" role="img" aria-label="배선 개요: 라즈베리파이 5, 4채널 드라이버, 사물함 4개 솔밸브와 리밋센서, LED 3개">
+  <defs>
+    <style>
+      text { font-family: "Pretendard", "Noto Sans KR", "NanumGothic", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+      .h { font-size: 22px; font-weight: 800; fill: #0f172a; }
+      .pt { font-size: 20px; font-weight: 800; fill: #ffffff; }
+      .pg { font-size: 13px; font-weight: 700; fill: #bbf7d0; }
+      .pin { font-size: 14px; font-weight: 600; fill: #ffffff; }
+      .bt { font-size: 16px; font-weight: 800; fill: #0f172a; }
+      .bd { font-size: 13px; fill: #334155; }
+      .lab { font-size: 13px; font-weight: 700; fill: #334155; }
+      .warn { font-size: 14px; fill: #7c2d12; }
+      .wt { font-size: 15px; font-weight: 800; fill: #7c2d12; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="590" rx="16" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="30" y="44" class="h">배선 개요 (기본 설정: 사물함 4칸 + 리밋센서)</text>
+  <text x="1170" y="44" text-anchor="end" class="bd">핀 번호는 BCM 기준 · 자세한 회로는 deploy/WIRING.md</text>
+
+  <!-- ===== Raspberry Pi 5 ===== -->
+  <rect x="30" y="70" width="250" height="480" rx="12" fill="#166534"/>
+  <text x="50" y="100" class="pt">Raspberry Pi 5</text>
+
+  <text x="50" y="132" class="pg">출력 → 솔밸브 드라이버</text>
+  <text x="50" y="160" class="pin">BCM24 · 핀18  (사물함1)</text>
+  <text x="50" y="185" class="pin">BCM25 · 핀22  (사물함2)</text>
+  <text x="50" y="210" class="pin">BCM16 · 핀36  (사물함3)</text>
+  <text x="50" y="235" class="pin">BCM26 · 핀37  (사물함4)</text>
+
+  <text x="50" y="277" class="pg">입력 ← 리밋센서 (내부 풀업)</text>
+  <text x="50" y="305" class="pin">BCM5  · 핀29  (사물함1)</text>
+  <text x="50" y="330" class="pin">BCM6  · 핀31  (사물함2)</text>
+  <text x="50" y="355" class="pin">BCM12 · 핀32  (사물함3)</text>
+  <text x="50" y="380" class="pin">BCM13 · 핀33  (사물함4)</text>
+
+  <text x="50" y="422" class="pg">출력 → 확인용 LED</text>
+  <text x="50" y="450" class="pin">BCM27 · 핀13  (녹색)</text>
+  <text x="50" y="475" class="pin">BCM22 · 핀15  (적색)</text>
+  <text x="50" y="500" class="pin">BCM23 · 핀16  (황색)</text>
+
+  <text x="50" y="532" class="pin">GND · 핀6 등</text>
+
+  <!-- 핀 점 -->
+  <g fill="#fde047">
+    <circle cx="280" cy="155" r="5"/><circle cx="280" cy="180" r="5"/><circle cx="280" cy="205" r="5"/><circle cx="280" cy="230" r="5"/>
+    <circle cx="280" cy="300" r="5"/><circle cx="280" cy="325" r="5"/><circle cx="280" cy="350" r="5"/><circle cx="280" cy="375" r="5"/>
+    <circle cx="280" cy="445" r="5"/><circle cx="280" cy="470" r="5"/><circle cx="280" cy="495" r="5"/>
+    <circle cx="280" cy="527" r="5"/>
+  </g>
+
+  <!-- ===== 4채널 드라이버 ===== -->
+  <rect x="400" y="112" width="200" height="148" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="500" y="134" text-anchor="middle" class="bt">4채널 드라이버</text>
+  <text x="414" y="160" class="bd">IN1</text><text x="414" y="185" class="bd">IN2</text>
+  <text x="414" y="210" class="bd">IN3</text><text x="414" y="235" class="bd">IN4</text>
+  <text x="586" y="185" text-anchor="end" class="bd">로직레벨</text>
+  <text x="586" y="203" text-anchor="end" class="bd">MOSFET</text>
+  <text x="586" y="221" text-anchor="end" class="bd">또는 릴레이</text>
+
+  <g stroke="#2563eb" stroke-width="3" fill="none">
+    <line x1="285" y1="155" x2="400" y2="155"/>
+    <line x1="285" y1="180" x2="400" y2="180"/>
+    <line x1="285" y1="205" x2="400" y2="205"/>
+    <line x1="285" y1="230" x2="400" y2="230"/>
+  </g>
+
+  <!-- 드라이버 → 사물함 솔밸브 -->
+  <g stroke="#2563eb" stroke-width="3" fill="none">
+    <path d="M600,155 H700 V120 H760"/>
+    <path d="M600,180 H685 V225 H760"/>
+    <path d="M600,205 H670 V330 H760"/>
+    <path d="M600,230 H655 V435 H760"/>
+  </g>
+
+  <!-- ===== 12V 전원 ===== -->
+  <rect x="400" y="300" width="160" height="72" rx="10" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+  <text x="480" y="328" text-anchor="middle" class="bt">12V 전원</text>
+  <text x="480" y="350" text-anchor="middle" class="bd">솔밸브 전용</text>
+  <text x="480" y="366" text-anchor="middle" class="bd">(Pi 전원과 분리)</text>
+  <line x1="480" y1="300" x2="480" y2="260" stroke="#dc2626" stroke-width="3"/>
+  <text x="488" y="286" class="lab" style="fill:#dc2626">+12V</text>
+
+  <!-- ===== LED ===== -->
+  <g stroke="#475569" stroke-width="2.5" fill="none">
+    <line x1="285" y1="445" x2="330" y2="445"/><line x1="380" y1="445" x2="408" y2="445"/>
+    <line x1="285" y1="470" x2="330" y2="470"/><line x1="380" y1="470" x2="408" y2="470"/>
+    <line x1="285" y1="495" x2="330" y2="495"/><line x1="380" y1="495" x2="408" y2="495"/>
+  </g>
+  <g fill="#ffffff" stroke="#475569" stroke-width="2">
+    <rect x="330" y="437" width="50" height="16" rx="3"/>
+    <rect x="330" y="462" width="50" height="16" rx="3"/>
+    <rect x="330" y="487" width="50" height="16" rx="3"/>
+  </g>
+  <text x="355" y="450" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">330Ω</text>
+  <text x="355" y="475" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">330Ω</text>
+  <text x="355" y="500" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">330Ω</text>
+  <circle cx="418" cy="445" r="10" fill="#22c55e"/>
+  <circle cx="418" cy="470" r="10" fill="#ef4444"/>
+  <circle cx="418" cy="495" r="10" fill="#f59e0b"/>
+  <text x="436" y="450" class="bd">→ GND</text>
+  <text x="436" y="475" class="bd">→ GND</text>
+  <text x="436" y="500" class="bd">→ GND</text>
+
+  <!-- ===== 공통 GND ===== -->
+  <line x1="285" y1="527" x2="610" y2="527" stroke="#0f172a" stroke-width="3"/>
+  <line x1="590" y1="260" x2="590" y2="527" stroke="#0f172a" stroke-width="3"/>
+  <line x1="530" y1="372" x2="530" y2="527" stroke="#0f172a" stroke-width="3"/>
+  <text x="616" y="532" class="lab" style="fill:#0f172a">공통 GND</text>
+
+  <!-- ===== 사물함 4개 ===== -->
+  <g transform="translate(760,75)">
+    <rect width="410" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+    <text x="16" y="30" class="bt">사물함 1</text>
+    <rect x="16" y="44" width="34" height="24" rx="4" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+    <path d="M22,56 q4,-8 8,0 q4,8 8,0 q4,-8 8,0" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="58" y="61" class="bd">솔밸브 + 1N4007</text>
+    <line x1="210" y1="14" x2="210" y2="76" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="236" cy="45" r="4" fill="#334155"/><circle cx="268" cy="45" r="4" fill="#334155"/>
+    <line x1="236" y1="45" x2="266" y2="33" stroke="#334155" stroke-width="3"/>
+    <text x="284" y="40" class="lab">리밋 → BCM5</text>
+    <text x="284" y="60" class="bd">문 닫힘 = 눌림</text>
+  </g>
+  <g transform="translate(760,180)">
+    <rect width="410" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+    <text x="16" y="30" class="bt">사물함 2</text>
+    <rect x="16" y="44" width="34" height="24" rx="4" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+    <path d="M22,56 q4,-8 8,0 q4,8 8,0 q4,-8 8,0" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="58" y="61" class="bd">솔밸브 + 1N4007</text>
+    <line x1="210" y1="14" x2="210" y2="76" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="236" cy="45" r="4" fill="#334155"/><circle cx="268" cy="45" r="4" fill="#334155"/>
+    <line x1="236" y1="45" x2="266" y2="33" stroke="#334155" stroke-width="3"/>
+    <text x="284" y="40" class="lab">리밋 → BCM6</text>
+    <text x="284" y="60" class="bd">문 닫힘 = 눌림</text>
+  </g>
+  <g transform="translate(760,285)">
+    <rect width="410" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+    <text x="16" y="30" class="bt">사물함 3</text>
+    <rect x="16" y="44" width="34" height="24" rx="4" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+    <path d="M22,56 q4,-8 8,0 q4,8 8,0 q4,-8 8,0" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="58" y="61" class="bd">솔밸브 + 1N4007</text>
+    <line x1="210" y1="14" x2="210" y2="76" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="236" cy="45" r="4" fill="#334155"/><circle cx="268" cy="45" r="4" fill="#334155"/>
+    <line x1="236" y1="45" x2="266" y2="33" stroke="#334155" stroke-width="3"/>
+    <text x="284" y="40" class="lab">리밋 → BCM12</text>
+    <text x="284" y="60" class="bd">문 닫힘 = 눌림</text>
+  </g>
+  <g transform="translate(760,390)">
+    <rect width="410" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+    <text x="16" y="30" class="bt">사물함 4</text>
+    <rect x="16" y="44" width="34" height="24" rx="4" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+    <path d="M22,56 q4,-8 8,0 q4,8 8,0 q4,-8 8,0" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="58" y="61" class="bd">솔밸브 + 1N4007</text>
+    <line x1="210" y1="14" x2="210" y2="76" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="236" cy="45" r="4" fill="#334155"/><circle cx="268" cy="45" r="4" fill="#334155"/>
+    <line x1="236" y1="45" x2="266" y2="33" stroke="#334155" stroke-width="3"/>
+    <text x="284" y="40" class="lab">리밋 → BCM13</text>
+    <text x="284" y="60" class="bd">문 닫힘 = 눌림</text>
+  </g>
+
+  <!-- ===== 주의 ===== -->
+  <g transform="translate(760,495)">
+    <rect width="410" height="78" rx="10" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+    <text x="16" y="24" class="wt">⚠ 연결 전 꼭 확인</text>
+    <text x="16" y="46" class="warn">· GPIO는 3.3V 신호만, 솔밸브 직접 연결 금지</text>
+    <text x="16" y="66" class="warn">· 첫 시험은 12V 전원을 뺀 상태에서 LED로</text>
+  </g>
+</svg>
