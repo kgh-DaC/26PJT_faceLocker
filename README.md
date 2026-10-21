@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="facedoor: 얼굴인식 사물함·도어(솔밸브) 제어 시스템" width="100%">
+  <img src="docs/images/banner.svg" alt="faceLocker: 얼굴인식 사물함·도어(솔밸브) 제어 시스템" width="100%">
 </p>
 
-# facedoor — 얼굴인식 사물함·도어 제어 시스템
+# faceLocker — 얼굴인식 사물함·도어 제어 시스템
 
 라즈베리파이 5와 USB 웹캠으로 **등록된 사람의 얼굴을 알아보고, 그 사람에게 배정된 사물함의 솔밸브만 열어 주는** Python 프로그램입니다.
 인식이 얼마나 믿을 만한지 **표와 그래프(FAR·FRR·ROC 등)로 평가하는 도구**도 함께 들어 있습니다.
@@ -10,6 +10,8 @@
 라즈베리파이가 없어도 됩니다. **PC에서 mock(가상 하드웨어) 모드로 전체 흐름을 먼저 개발·시험**하고, 설정 한 줄(`hardware.mode: pi`)만 바꿔 실제 장치로 옮깁니다.
 
 > **상태:** PC mock 모드에서 개발·테스트를 마쳤습니다. 라즈베리파이 실기 배선과 동작은 아직 검증 전이므로, 처음 연결할 때는 [배선 가이드](deploy/WIRING.md)의 시험 순서를 꼭 따라 주세요.
+
+> **이름 참고:** 저장소 이름은 `faceLocker`이고, 코드 안의 파이썬 패키지 이름은 예전 그대로 `facedoor`입니다(`src/facedoor/`, `python -m facedoor`, `facedoor.service`).
 
 ---
 
@@ -113,8 +115,8 @@ Python **3.12 또는 3.13**이 필요합니다.
 
 ```bash
 # 1) 내려받기
-git clone https://github.com/kgh-DaC/26PJT_facedoor.git
-cd 26PJT_facedoor
+git clone https://github.com/kgh-DaC/26PJT_faceLocker.git
+cd 26PJT_faceLocker
 
 # 2) 가상환경 만들고 켜기
 python -m venv .venv
@@ -206,8 +208,8 @@ python scripts/evaluate.py --gallery data/gallery --probe data/probe --out repor
 
 ```bash
 # 라즈베리파이 5 (Ubuntu 24.04)에서
-git clone https://github.com/kgh-DaC/26PJT_facedoor.git
-cd 26PJT_facedoor
+git clone https://github.com/kgh-DaC/26PJT_faceLocker.git
+cd 26PJT_faceLocker
 sudo deploy/install_rpi.sh               # 한 번에 설치 (아래 설명 참고)
 
 # 솔밸브 12V 전원을 뺀 상태에서 하드웨어 점검
@@ -235,7 +237,7 @@ sudo deploy/install_rpi.sh               # 한 번에 설치 (아래 설명 참�
 ## 8. 폴더 구조
 
 ```
-26PJT_facedoor/
+26PJT_faceLocker/
 ├── src/facedoor/         # 본체 코드
 │   ├── camera.py         #   웹캠/동영상/이미지 폴더 입력
 │   ├── detector.py       #   얼굴 검출 (YuNet)
